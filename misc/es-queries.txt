@@ -1,0 +1,6 @@
+# -*- restclient -*-
+
+:eshost= localhost
+
+#
+GET http://localhost:9200

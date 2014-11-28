@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use Elastijk;
+
+use Img::Analyzer;
+
+my $file = $ARGV[0] or die;
+
+my $analyzer = Img::Analyzer->new;
+my $r = $analyzer->analyze($file);
+
+my $es = Elastijk->new( host => "localhost", port => "9200" );
+
+my $res = $es->put(
+    index => "img",
+    type => "feature",
+    id => $file,
+    body => $r,
+);
+
+say "DONE", "\t", $res->{_id};
+

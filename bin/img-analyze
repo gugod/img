@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Img::Analyzer;
+
+my $file = $ARGV[0] or die;
+
+my $analyzer = Img::Analyzer->new;
+my $r = $analyzer->analyze($file);
+
+use YAML;
+print YAML::Dump($r);
+

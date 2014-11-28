@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use Elastijk;
+
+use Img::Analyzer;
+
+my $file = $ARGV[0] or die;
+
+my $analyzer = Img::Analyzer->new;
+my $r = $analyzer->analyze($file);
+
+my $es = Elastijk->new( host => "localhost", port => "9200" );
+
+my @allfeature = @{$r->{feature3x3}};
+# my @allfeature = @{$r->{feature}};
+my %seen;
+while(@allfeature) {
+    my @subfeature = splice(@allfeature,0,1000);
+    my $res = $es->get(
+        index => "img",
+        type => "feature",
+        command => "_search",
+        body => {
+            query => {
+                terms => {
+                    feature3x3 => \@subfeature,
+                    # minimum_should_match => "60%",
+                }
+            }
+        }
+    );
+    if ($res->{hits}{total} > 0) {
+        for my $hit (@{$res->{hits}{hits}}) {
+            $seen{$hit->{_id}} ||= {
+                hits => 0,
+                score => 0,
+            };
+            $seen{$hit->{_id}}{hits}++;
+            $seen{$hit->{_id}}{score} += $hit->{_score};
+        }
+    }
+}
+
+my @seen = map { $_->[0] } sort { $b->[1] <=> $a->[1] } map {[$_, $seen{$_}{score}/$seen{$_}{hits} ]} keys %seen;
+for my $hit (@seen) {
+    say $seen{$hit}{hits}, "\t", $hit;
+}
