@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Img::Hashing;
+
+use Imager;
+
+my $file = $ARGV[0] or die;
+my $img = Imager->new(file=>$file) or die Imager->errstr;
+my $hash = Img::Hashing::average_hash($img);
+printf "%016x\n", $hash;
+
