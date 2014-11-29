@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Img::ColorChange;
+
+use Imager;
+use Imager::Color;
+use Imager::Fill;
+
+my ($input, $output) = @ARGV;
+($output && -f $input) or die;
+
+my $img = Imager->new(file=>$input) or die Imager->errstr;
+
+for my $y (0..$img->getheight-1) {
+    my @px =  map { Imager::Color->new(@{ Img::ColorChange::nearest_color([$_->rgba]) }) } $img->getscanline(y=>$y);
+    $img->setscanline(y=>$y, pixels => \@px);
+}
+
+$img->write(file => $output) or die $img->errstr;
