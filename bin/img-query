@@ -21,7 +21,7 @@ my $res = $es->get(
         query => {
             terms => {
                 average_hash => $r->{average_hash},
-                minimum_should_match => "80%",
+                minimum_should_match => 55,
             }
         }
     }
