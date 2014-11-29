@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+use Imager::Color;
+use Imager::Fill;
+
+my ($input, $output) = @ARGV;
+($output && -f $input) or die;
+
+my $mosaic_size = 120;
+my $mosaic_area = $mosaic_size*$mosaic_size;
+
+my $img = Imager->new(file=>$input) or die Imager->errstr;
+my $img_new = $img->copy;
+
+for my $y (map {$_*$mosaic_size} 0..int($img->getheight/$mosaic_size)) {
+    for my $x (map {$_*$mosaic_size} 0..int($img->getwidth/$mosaic_size)) {
+        my $patch = $img->crop(left => $x, top => $y, width => $mosaic_size, height => $mosaic_size) or next;
+        
+        my @pixels;
+        for (0..$mosaic_size-1) {
+            my @px = $patch->getscanline(y=>$_);
+            push @pixels, map { my @c = $_->rgba; [$_, $c[0]+$c[1]+$c[2]] } @px;
+        }
+        @pixels = map { $_->[0] } sort { $a->[1] <=> $b->[1] } @pixels;
+        for my $y (0..$mosaic_size-1) {
+            my @row = splice(@pixels, 0, $mosaic_size);
+            $patch->setscanline(y=>$y, pixels => \@row);
+        }
+
+        $img_new->paste(
+            img => $patch,
+            left => $x,
+            top  => $y,
+        );
+    }
+}
+
+$img_new->write(file => $output) or die $img_new->errstr;

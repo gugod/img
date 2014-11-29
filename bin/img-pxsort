@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+use Imager::Color;
+use Imager::Fill;
+
+my ($input, $output) = @ARGV;
+($output && -f $input) or die;
+
+my $mosaic_size = 120;
+my $mosaic_area = $mosaic_size*$mosaic_size;
+
+my $img = Imager->new(file=>$input) or die Imager->errstr;
+my $img_width = $img->getwidth;
+
+my @pixels;
+for (0..$img->getheight-1) {
+    my @px = $img->getscanline(y=>$_);
+    push @pixels, map { my @c = $_->rgba; [$_, $c[0]+$c[1]+$c[2]] } @px;
+}
+@pixels = map { $_->[0] } sort { $a->[1] <=> $b->[1] } @pixels;
+for my $y (0..$img->getheight-1) {
+    my @row = splice(@pixels, 0, $img_width);
+    $img->setscanline(y=>$y, pixels => \@row);
+}
+
+$img->write(file => $output) or die $img->errstr;
