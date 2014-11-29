@@ -17,10 +17,11 @@ $es->put(
             }
         },
         mappings => {
-            feature => {
-                _source => { enabled => 0 },
+            img => {
+                # _source => { enabled => 0 },
                 properties => {
-                    feature3x3 => { type => "string",  index => "not_analyzed" }
+                    feature3x3 => { type => "string",  index => "not_analyzed" },
+                    average_hash => { type => "string", index => "not_analyzed" }
                 }
             }
         }

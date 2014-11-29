@@ -15,7 +15,7 @@ my $es = Elastijk->new( host => "localhost", port => "9200" );
 
 my $res = $es->put(
     index => "img",
-    type => "feature",
+    type => "img",
     id => $file,
     body => $r,
 );
