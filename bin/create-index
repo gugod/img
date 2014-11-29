@@ -17,8 +17,15 @@ $es->put(
             }
         },
         mappings => {
-            img => {
-                # _source => { enabled => 0 },
+            full => {
+                _source => { enabled => 0 },
+                properties => {
+                    feature3x3 => { type => "string",  index => "not_analyzed" },
+                    average_hash => { type => "string", index => "not_analyzed" }
+                }
+            },
+            patch => {
+                _source => { enabled => 0 },
                 properties => {
                     feature3x3 => { type => "string",  index => "not_analyzed" },
                     average_hash => { type => "string", index => "not_analyzed" }
