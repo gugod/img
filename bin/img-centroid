@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+use YAML;
+use File::Basename 'basename';
+
+
+sub centroid_from_sequence {
+    my ($sequence) = @_;
+    my $n = @{$sequence->[0]};
+
+    my @centroid = (undef, undef, undef);
+    my @integral = ([ $sequence->[0][0] ],[ $sequence->[1][0] ],[ $sequence->[2][0] ]);
+    for my $i (1 .. $n-1) {
+        $integral[0][$i] += $sequence->[0][$i] + $integral[0][$i-1];
+        $integral[1][$i] += $sequence->[1][$i] + $integral[1][$i-1];
+        $integral[2][$i] += $sequence->[2][$i] + $integral[2][$i-1];
+    }
+
+
+    for my $i (0..$n) {
+        $centroid[0] = $i if !defined($centroid[0]) && $integral[0][$i] * 2 > $integral[0][$n-1];
+        $centroid[1] = $i if !defined($centroid[1]) && $integral[1][$i] * 2 > $integral[1][$n-1];
+        $centroid[2] = $i if !defined($centroid[2]) && $integral[2][$i] * 2 > $integral[2][$n-1];
+        last if (defined($centroid[0]) && defined($centroid[1]) && defined($centroid[2]));
+    }
+
+    my $middle = int($n/2);
+    $centroid[0] //= $middle;
+    $centroid[1] //= $middle;
+    $centroid[2] //= $middle;
+
+    return \@centroid;
+}
+
+my $file = $ARGV[0] or die;
+my $file_basename = basename($file);
+
+my $img = Imager->new(file=>$file) or die Imager->errstr;
+
+my $rows = $img->getheight;
+my @rsum;
+my @csum;
+for my $y (0 .. $img->getheight-1) {
+    my @xs = $img->getscanline(y => $y);
+    for my $x (0 .. $#xs) {
+        my @c = $xs[$x]->rgba;
+
+        $rsum[0][$y] += $c[0];
+        $rsum[1][$y] += $c[1];
+        $rsum[2][$y] += $c[2];
+
+        $csum[0][$x] += $c[0];
+        $csum[1][$x] += $c[1];
+        $csum[2][$x] += $c[2];
+    }
+}
+
+
+my $rcentroid = centroid_from_sequence(\@rsum);
+my $ccentroid = centroid_from_sequence(\@csum);
+my @centroid;
+for (0,1,2) {
+    $centroid[$_] = [$ccentroid->[$_], $rcentroid->[$_]]
+}
+
+my ($img_width, $img_height) = ($img->getwidth, $img->getheight);
+say YAML::Dump([
+    [ $img_width,  $img_height ],
+    \@centroid,
+]);
