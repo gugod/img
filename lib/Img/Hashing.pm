@@ -20,5 +20,24 @@ package Img::Hashing {
         }
         return $hash;
     }
+
+    sub difference_hash {
+        my ($img0) = @_;
+        my $img = $img0->scale(xpixels => 9, ypixels => 8)->convert(preset=>"grey");
+        my $hash = 0;
+        my $i = 0;
+        for my $y (0..7) {
+            my @l = $img->getscanline(y=>$y);
+            for (1 .. $#l) {
+                my ($a) = $l[$_-1]->rgba;
+                my ($b) = $l[$_]->rgba;
+                my $x = $a < $b ? 1 : 0;
+                $hash |= $x << $i if $x;
+                $i++;
+            }
+        }
+        return $hash;
+    }
+
 };
 1;
