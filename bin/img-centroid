@@ -29,7 +29,6 @@ sub centroid_from_sequence {
     $centroid[0] //= $middle;
     $centroid[1] //= $middle;
     $centroid[2] //= $middle;
-
     return \@centroid;
 }
 
@@ -57,15 +56,21 @@ for my $y (0 .. $img->getheight-1) {
 }
 
 
+my ($img_width, $img_height) = ($img->getwidth, $img->getheight);
 my $rcentroid = centroid_from_sequence(\@rsum);
 my $ccentroid = centroid_from_sequence(\@csum);
 my @centroid;
+my @rel_centroid;
 for (0,1,2) {
-    $centroid[$_] = [$ccentroid->[$_], $rcentroid->[$_]]
+    $centroid[$_] = [$ccentroid->[$_] // -1 , $rcentroid->[$_] // -1];
+    $rel_centroid[$_] = [
+        $centroid[$_][0] < 0 ? -1 : $centroid[$_][0] / $img_width,
+        $centroid[$_][1] < 0 ? -1 : $centroid[$_][1] / $img_width,
+    ];
 }
 
-my ($img_width, $img_height) = ($img->getwidth, $img->getheight);
 say YAML::Dump([
     [ $img_width,  $img_height ],
     \@centroid,
+    \@rel_centroid,
 ]);
