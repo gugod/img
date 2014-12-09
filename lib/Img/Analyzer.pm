@@ -11,13 +11,16 @@ package Img::Analyzer {
         my $doc = {};
         my $img = Imager->new( file => $file ) or die Imager->errstr;
 
-        my @avghash_tokens;
-        my $avghash = Img::Hashing::average_hash($img);
-        for my $i (0..63) {
-            my $b = ($avghash & (1<<$i)) >> $i;
-            push @avghash_tokens, $i . "_" . $b;
+        for my $hashing (qw< average_hash difference_hash >) {
+            my $method = Img::Hashing->can($hashing);
+            my @tokens;
+            my $hash = $method->($img);
+            for my $i (0..63) {
+                my $b = ($hash & (1<<$i)) >> $i;
+                push @tokens, $i . "_" . $b;
+            }
+            $doc->{$hashing} = \@tokens;
         }
-        $doc->{average_hash} = \@avghash_tokens;
 
         return $doc;
     }
