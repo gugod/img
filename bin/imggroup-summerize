@@ -1,0 +1,95 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+use List::MoreUtils 'minmax';
+use Getopt::Std;
+
+sub summerize_from_histogram {
+    my $hist = shift;
+    my $sum = 0;
+    my $n = 0;
+    my @v = keys %$hist;
+    my ($min, $max) = minmax(@v);
+    my $mode = $min;
+    my $mode_f = $hist->{$min};
+    for my $v (@v) {
+        $sum += ($hist->{$v} * $v);
+        $n += $hist->{$v};
+        if ($hist->{$v} > $mode_f) {
+            $mode = $v;
+            $mode_f = $hist->{$v};
+        }
+    }
+    my $mean = int($sum / $n);
+    return {
+        min  => $min,
+        max  => $max,
+        mean => $mean,
+        mode => $mode,
+        diff_max_min => ($max-$min),
+        diff_max_mean => ($max-$mean),
+        diff_mode_mean => abs($mode-$mean),
+    }
+}
+
+my %opts;
+getopts('r:m:o:', \%opts);
+$opts{output} = $opts{o} // "output.png";
+$opts{resize} = $opts{r};
+$opts{method} = $opts{m} // "mean";
+
+my $resize;
+if ($opts{resize} =~ /(\d+)+x(\d+)/) {
+    $resize = [$1, $2];
+}
+
+my @image_paths = map { chomp; $_ } <>;
+my @images;
+
+my ($min_width, $max_width, $min_height, $max_height);
+for my $path (@image_paths) {
+    my $img = Imager->new(file => $path) or next;
+    if ($resize) {
+        $img = $img->scale( xpixels => $resize->[0], ypixels => $resize->[1], type=> 'nonprop' );        
+    }
+
+    push @images, { path => $path, image => $img };
+
+    my $w = $img->getwidth;
+    my $h = $img->getheight;
+    $min_height = $h if $h < $min_height;
+    $max_height = $h if $h > $max_height;
+    $min_width  = $w if $w < $min_width;
+    $max_width  = $w if $w > $max_width;
+}
+
+my $mat_histogram = [];
+for my $i (@images) {
+    my $img = $i->{image};
+    for my $y ( 0 .. $img->getheight - 1) {
+        my @l = $img->getscanline(y=>$y);
+        for my $x (0..$#l) {
+            my @c = $l[$x]->rgba;
+            for my $channel (0,1,2) {
+                my $v = $c[$channel];
+                $mat_histogram->[$y][$x][$channel]{$v}++;
+            }
+        }
+    }
+}
+
+my $image_summerize = Imager->new( xsize => $max_width, ysize => $max_height );
+
+for my $y (0..$max_height-1) {
+    for my $x (0..$max_width-1) {
+        my @c;
+        for my $channel (0,1,2) {
+            my $hist = $mat_histogram->[$y][$x][$channel];
+            my $s = summerize_from_histogram($hist);
+            $c[$channel] = $s->{ $opts{method} };
+        }
+        $image_summerize->setpixel( y => $y, x => $x, color => \@c);
+    }
+}
+
+$image_summerize->write( file => $opts{output} ) or die $image_summerize->errstr;
