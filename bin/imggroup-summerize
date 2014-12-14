@@ -33,10 +33,11 @@ sub summerize_from_histogram {
 }
 
 my %opts;
-getopts('r:m:o:', \%opts);
+getopts('r:m:o:c:', \%opts);
 $opts{output} = $opts{o} // "output.png";
 $opts{resize} = $opts{r};
 $opts{method} = $opts{m} // "mean";
+$opts{channels} = [split(/,/ => ($opts{c} // "0,1,2"))];
 
 my $resize;
 if ($opts{resize} =~ /(\d+)+x(\d+)/) {
@@ -70,7 +71,7 @@ for my $i (@images) {
         my @l = $img->getscanline(y=>$y);
         for my $x (0..$#l) {
             my @c = $l[$x]->rgba;
-            for my $channel (0,1,2) {
+            for my $channel (@{ $opts{channels} }) {
                 my $v = $c[$channel];
                 $mat_histogram->[$y][$x][$channel]{$v}++;
             }
@@ -78,12 +79,12 @@ for my $i (@images) {
     }
 }
 
-my $image_summerize = Imager->new( xsize => $max_width, ysize => $max_height );
+my $image_summerize = Imager->new( xsize => $max_width, ysize => $max_height, channels => 0+@{ $opts{channels} } );
 
 for my $y (0..$max_height-1) {
     for my $x (0..$max_width-1) {
-        my @c;
-        for my $channel (0,1,2) {
+        my @c = (255,0,0);
+        for my $channel (@{ $opts{channels} }) {
             my $hist = $mat_histogram->[$y][$x][$channel];
             my $s = summerize_from_histogram($hist);
             $c[$channel] = $s->{ $opts{method} };
