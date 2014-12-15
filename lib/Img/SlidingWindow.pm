@@ -1,14 +1,14 @@
 use v5.18;
 package Img::SlidingWindow {
     use Moo;
-    use Imager;
-
+    use Img;
     use Img::ImagePatch;
 
     has width  => (is => "ro", required => 1);
     has height => (is => "ro", required => 1);
     has image  => (is => "ro", required => 1);
 
+    has step => ( is => "rw", default => 1 );
     has top  => ( is => "rw", default => 0 );
     has left => ( is => "rw", default => 0 );
 
@@ -25,14 +25,16 @@ package Img::SlidingWindow {
 
         if ( $x + $self->width >= $self->image->getwidth ) {
             $x = 0;
-            $y += 1;
+            $y += $self->step;
             if ( $y + $self->height >= $self->image->getheight ) {
                 return;
             }
         } else {
-            $x += 1;
+            $x += $self->step;
         }
+
         my $w = $self->image->crop(left => $x, top => $y, width => $self->width, height => $self->height);
+
         $self->top($y);
         $self->left($x);
 
