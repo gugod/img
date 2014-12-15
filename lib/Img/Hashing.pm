@@ -1,8 +1,14 @@
 use v5.18;
 package Img::Hashing {
+    use Moo::Role;
+
     sub average_hash {
         my ($img0) = @_;
-        my $img = $img0->scale(xpixels => 8, ypixels => 8)->convert(preset=>"grey");
+        my $img = $img0->convert(preset=>"grey");
+        if (($img->getwidth != 8) || ($img->getheight != 8)) {
+            $img = $img->scale(xpixels => 8, ypixels => 8);
+        }
+
         my $sum = 0;
         my @c;
         for my $y (0..7) {
@@ -12,6 +18,7 @@ package Img::Hashing {
                 $sum += $c;
             }
         }
+
         my $hash = 0;
         my $avg = $sum/64;
         for my $i (0..$#c) {
