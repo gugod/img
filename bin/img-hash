@@ -4,17 +4,18 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 use Getopt::Std;
-use Imager;
 
+use Img;
 use Img::Hashing;
 
 my %opts;
 getopts('m:', \%opts);
 
 my $method = ($opts{m} || "average_hash");
-
-my $file = $ARGV[0] or die;
 my $hashing = Img::Hashing->can($method) or die;
-my $img = Imager->new(file=>$file) or die Imager->errstr;
 
-printf "%016x\t$file\n", $hashing->($img);
+for my $file (@ARGV) {
+    my $img = Img->new(file=>$file) or die Img->errstr;
+    # printf "%064b\t%s\n", $hashing->($img), $file;
+    printf "%016x\t%s\n", $hashing->($img), $file;
+}
