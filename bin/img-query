@@ -3,6 +3,10 @@ use v5.18;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Elastijk;
+use Getopt::Std;
+
+my %opts;
+getopts('s:', \%opts);
 
 use Img::Analyzer;
 
@@ -15,15 +19,17 @@ my $es = Elastijk->new( host => "localhost", port => "9200" );
 
 my $res = $es->get(
     index => "img",
-    type => "full",
+    # type => "full",
+    # type => "patch",
     command => "_search",
     body => {
+        # query => { terms => { difference_hash => $r->{difference_hash} } }
         query => {
             terms => {
-                average_hash => $r->{average_hash},
-                minimum_should_match => 55,
+                average_hash => $r->{average_hash}
             }
-        }
+        },
+        size => $opts{s} || 10,
     }
 );
 
