@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+use v5.18;
+
+use Imager;
+use Image::Hash;
+use File::Slurp;
+
+sub phash_image {
+    my $file = shift;
+    my $image = read_file($file, binmode => ":raw");
+    my $ih = Image::Hash->new($image, "Imager");
+    my $h = $ih->phash();
+    if (length($h) < 16) {
+        $h = "0" x (16 - length($h)) . $h;
+    }
+    return $h;
+}
+
+if (@ARGV) {
+    for (@ARGV) {
+        my $h = phash_image($_);
+        say "$h\t$_";
+    }
+
+}
+if (-p STDIN) {
+    while(<STDIN>) {
+        chomp;
+        my $h = phash_image($_);
+        say "$h\t$_";
+    }
+}
