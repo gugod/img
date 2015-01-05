@@ -12,27 +12,43 @@ $es->put(
     body => {
         settings => {
             index => {
-                number_of_shards => 4,
+                number_of_shards   => 2,
                 number_of_replicas => 0,
             }
         },
         mappings => {
             full => {
-                _source => { enabled => 0 },
+                _source => {
+                    excludes => ["terms.*"]
+                },
                 properties => {
                     file => { type => "string", index => "not_analyzed" },
                     geometry => { type => "string", index => "not_analyzed" },
                     average_hash => { type => "string", index => "not_analyzed" },
-                    difference_hash => { type => "string", index => "not_analyzed" }
+                    difference_hash => { type => "string", index => "not_analyzed" },
+                    terms => {
+                        properties => {
+                            average_hash => { type => "string", index => "not_analyzed" },
+                            difference_hash => { type => "string", index => "not_analyzed" },
+                        }
+                    }
                 }
             },
             patch => {
-                _source => { enabled => 0 },
+                _source => {
+                    excludes => ["terms.*"]
+                },
                 properties => {
                     file => { type => "string", index => "not_analyzed" },
                     geometry => { type => "string", index => "not_analyzed" },
                     average_hash => { type => "string", index => "not_analyzed" },
-                    difference_hash => { type => "string", index => "not_analyzed" }
+                    difference_hash => { type => "string", index => "not_analyzed" },
+                    terms => {
+                        properties => {
+                            average_hash => { type => "string", index => "not_analyzed" },
+                            difference_hash => { type => "string", index => "not_analyzed" },
+                        }
+                    }
                 }
             }
         }
