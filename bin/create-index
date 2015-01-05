@@ -21,6 +21,7 @@ $es->put(
                 _source => {
                     excludes => ["terms.*"]
                 },
+                dynamic => 0,
                 properties => {
                     file => { type => "string", index => "not_analyzed" },
                     geometry => { type => "string", index => "not_analyzed" },
@@ -38,6 +39,7 @@ $es->put(
                 _source => {
                     excludes => ["terms.*"]
                 },
+                dynamic => 0,
                 properties => {
                     file => { type => "string", index => "not_analyzed" },
                     geometry => { type => "string", index => "not_analyzed" },
