@@ -49,7 +49,9 @@ for my $config ([8,8,1],[16,16,1],[24,24,1],[65,65,1]) {
                 file => $file,
                 geometry => $geo,
                 average_hash => $hash_hex,
-                "terms.average_hash" => \@tokens,
+                terms => {
+                    average_hash => \@tokens,
+                }
             }
         );
         if (substr($status,0,1) ne '2') {
