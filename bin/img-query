@@ -26,7 +26,7 @@ my $res = $es->get(
         # query => { terms => { difference_hash => $r->{difference_hash} } }
         query => {
             terms => {
-                average_hash => $r->{average_hash}
+                "terms.average_hash" => $r->{average_hash}
             }
         },
         size => $opts{s} || 10,
