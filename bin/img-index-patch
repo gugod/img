@@ -1,0 +1,63 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Getopt::Std;
+use Elastijk;
+use Parallel::ForkManager;
+
+use Img;
+use Img::SlidingWindow;
+
+my $file = $ARGV[0] or die;
+my $img = Img->new( file => $file ) or die Img->errstr;
+
+my $es = Elastijk->new( host => "localhost", port => "9200" );
+
+my $forkman = Parallel::ForkManager->new(2);
+
+for my $config ([8,8,1],[16,16,1],[24,24,1],[65,65,1]) {
+    $forkman->start and next;
+    
+    my ($w,$h, $step) = @$config;
+
+    my $iter = Img::SlidingWindow->new(
+        image  => $img,
+        width  => $w,
+        height => $h,
+        step   => $step,
+    );
+
+    while (my $item = $iter->next()) {
+        my $p = $item->patch;
+        my $hash = $p->average_hash;
+        my $hash_hex = sprintf("%016x", $hash);
+        next if $hash == 0;
+        my @tokens;
+        for my $i (0..63) {
+            my $b = ($hash & (1<<$i)) >> $i;
+            push @tokens, $i . "_" . $b;
+        }
+
+        my $geo = $w . "x" . $h . "+" . $item->left . "+" . $item->top;
+        my ($status, $res) = $es->put(
+            index => "img",
+            type => "patch",
+            id => "${file}#${geo}",
+            body => {
+                file => $file,
+                geometry => $geo,
+                average_hash => $hash_hex,
+                "terms.average_hash" => \@tokens,
+            }
+        );
+        if (substr($status,0,1) ne '2') {
+            die "ES DEAD: (status = $status) : " . $Elastijk::JSON->encode([ $res ]);
+        } else {
+            say "Done: $hash_hex <= $geo ";
+        }
+    }
+    $forkman->finish;
+}
+$forkman->wait_all_children;
