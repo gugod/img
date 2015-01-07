@@ -46,5 +46,60 @@ package Img::Hashing {
         return $hash;
     }
 
+
+    sub _dct_1d {
+        my $s = shift;
+        my $c = @$s +0;
+        my $out = [];
+
+        # u == 0
+        my $z = 0;
+        $z += $s->[$_] for 0 .. $c-1;
+        $z *= 0.70710678118654752440; # 1/sqrt(2)
+        $out->[0] = $z/2;
+
+        for my $u (1 .. $c-1) {
+            $z = 0;
+            for (0 .. $c-1) {
+                $z += $s->[$_] * cos( 3.14159265358979323846 * $u * (2*$_+1) / (2*$c) );
+            }
+            $out->[$u] = $z/2;
+        }
+        return $out;
+    }
+
+    sub perceptual_hash {
+        my ($img0) = @_;
+        my $img = $img0->scale(xpixels => 32, ypixels => 32)->convert(preset=>"grey");
+        my $dct_matrix = [];
+        my ($x,$y);
+        for $y (0 .. 31) {
+            my @l = map { ($_->rgba)[0] } $img->getscanline(y => $y);
+            $dct_matrix->[$y] = _dct_1d(\@l);
+        }
+        for $x (0 .. 31) {
+            my $dct_col = _dct_1d([ map { $dct_matrix->[$_][$x] } 0..31 ]);
+            for $y (0 .. 31) {
+                $dct_matrix->[$y][$x] = $dct_col->[$y];
+            }
+        }
+
+        my (@c, $sum);
+        for $x (1 .. 8) {
+            for $y (1 .. 8) {
+                push @c, $dct_matrix->[$y][$x];
+                $sum += $dct_matrix->[$y][$x];;
+            }
+        }
+
+        my $hash = 0;
+        my $avg = $sum/64;
+        for my $i (0..$#c) {
+            my $b = ($c[$i] > $avg) ? 1 : 0;
+            $hash |= ($b << $i) if $b;
+        }
+        return $hash;
+    }
+
 };
 1;
