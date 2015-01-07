@@ -87,8 +87,9 @@ package Img::Hashing {
         my (@c, $sum);
         for $x (1 .. 8) {
             for $y (1 .. 8) {
-                push @c, $dct_matrix->[$y][$x];
-                $sum += $dct_matrix->[$y][$x];;
+                my $c = $dct_matrix->[$y][$x];
+                push @c, $c;
+                $sum += $c;
             }
         }
 
@@ -102,4 +103,5 @@ package Img::Hashing {
     }
 
 };
+
 1;
