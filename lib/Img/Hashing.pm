@@ -68,21 +68,31 @@ package Img::Hashing {
         return $out;
     }
 
-    sub perceptual_hash {
-        my ($img0) = @_;
-        my $img = $img0->scale(xpixels => 32, ypixels => 32)->convert(preset=>"grey");
+    sub _dct_2d {
+        my $mat = shift;
+        my ($x, $y);
         my $dct_matrix = [];
-        my ($x,$y);
-        for $y (0 .. 31) {
-            my @l = map { ($_->rgba)[0] } $img->getscanline(y => $y);
-            $dct_matrix->[$y] = _dct_1d(\@l);
+        for $y (0 .. $#$mat) {
+            $dct_matrix->[$y] = _dct_1d( $mat->[$y] );
         }
-        for $x (0 .. 31) {
-            my $dct_col = _dct_1d([ map { $dct_matrix->[$_][$x] } 0..31 ]);
-            for $y (0 .. 31) {
+        for $x (0 .. $#{$mat->[0]}) {
+            my $dct_col = _dct_1d([ map { $dct_matrix->[$_][$x] } 0..($#$mat) ]);
+            for $y (0 .. $#$mat ) {
                 $dct_matrix->[$y][$x] = $dct_col->[$y];
             }
         }
+        return $dct_matrix;
+    }
+
+    sub perceptual_hash {
+        my ($img0) = @_;
+        my $img = $img0->scale(xpixels => 32, ypixels => 32)->convert(preset=>"grey");
+        my $img_mat = [];
+        my ($x,$y);
+        for $y (0 .. 31) {
+            $img_mat->[$y] = [ map { ($_->rgba)[0] } $img->getscanline(y => $y) ];
+        }
+        my $dct_matrix = _dct_2d($img_mat);
 
         my (@c, $sum);
         for $x (1 .. 8) {
