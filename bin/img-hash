@@ -9,12 +9,16 @@ use Img;
 use Img::Hashing;
 
 my %opts;
-getopts('m:', \%opts);
+getopts('bm:', \%opts);
 
 my $method = ($opts{m} || "average_hash");
 my $hashing = Img::Hashing->can($method) or die;
 
 for my $file (@ARGV) {
     my $img = Img->new(file=>$file) or die Img->errstr;
-    printf "%016x %s\n", $hashing->($img), $file;
+    if ($opts{b}) {
+        printf "%064b %s\n", $hashing->($img), $file;
+    } else {
+        printf "%016x %s\n", $hashing->($img), $file;
+    }
 }
