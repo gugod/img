@@ -93,18 +93,18 @@ sub iterate_over_all_bbox {
     my @dimension = reverse map { $_ * 50 } 2..6; # 100..300 by 50
     my $forkman = Parallel::ForkManager->new(4);
     for my $w (@dimension) {
+        $forkman->start and next;
         for my $h ( @dimension ) {
             for (my $x = 0; $x < $img_width-$w; $x += 10) {
                 for (my $y = 0; $y < $img_height-$h; $y += 10) {
-                    $forkman->start and next;
                     my $bbox = "BBOX: [$x,$y,$w,$h]";
                     if ( $cb->($x,$y,$w,$h) ) {
                         say "FOUND: $bbox";
                     }
-                    $forkman->finish;
                 }
             }
         }
+        $forkman->finish;
     }
     $forkman->wait_all_children;
 }
