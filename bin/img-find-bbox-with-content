@@ -24,24 +24,25 @@ sub main {
             my $p = $img->crop( left => $x, right => $x+$w-1, top => $y, bottom => $y+$h-1 );
             my @c = map { ($p->getscanline( x => 0, y => $_ )) } 0..$h;
 
-            unless (mostly_white(@c)) {
-                my ($p2, $shave) = trim_white_edge($p);
-                my ($w2,$h2) = ($p2->getwidth, $p2->getheight);
-                my $x2 = $x + $shave->{left};
-                my $y2 = $y + $shave->{top};
+            return 2 if mostly_white(@c);
 
-                my $k = join("-", $x2, $y2, $w2, $h2);
-                unless ( $seen{$k} ) {
-                    $seen{$k} = 1;
-                    my $dir = "$output/$y2";
-                    make_path($dir) unless -d $dir;
+            my ($p2, $shave) = trim_white_edge($p);
+            my ($w2,$h2) = ($p2->getwidth, $p2->getheight);
+            my $x2 = $x + $shave->{left};
+            my $y2 = $y + $shave->{top};
 
-                    unless (-f "$dir/bbox-$k.png") {
-                        $p2->write( file => "$dir/bbox-$k.png" );
-                        return 1;
-                    }
+            my $k = join("-", $x2, $y2, $w2, $h2);
+            unless ( $seen{$k} ) {
+                $seen{$k} = 1;
+                my $dir = "$output/$y2";
+                make_path($dir) unless -d $dir;
+
+                unless (-f "$dir/bbox-$k.png") {
+                    $p2->write( file => "$dir/bbox-$k.png" );
+                    return 1;
                 }
             }
+
             return 0;
         }
     );
@@ -99,6 +100,7 @@ sub iterate_over_all_bbox {
     for my $h ( @dimension ) {
         for (my $y = 0; $y < $img_height-$h; $y += 5) {
             $forkman->start and next;
+            $0 = "$0 - y = $y, h = $h";
             for my $w (@dimension) {
                 for (my $x = 0; $x < $img_width-$w; $x += 5) {
                     my $bbox = "BBOX: [$x,$y,$w,$h]";
