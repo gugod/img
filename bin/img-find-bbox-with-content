@@ -32,7 +32,9 @@ sub main {
 
                 my $k = join("-", $x2, $y2, $w2, $h2);
                 unless ( $seen{$k} ) {
-                    $p2->write( file => "$output/bbox-$k.png" );
+                    my $dir = "$output/$w-$h";
+                    make_path($dir) unless -d $dir;
+                    $p2->write( file => "$dir/bbox-$k.png" );
                     $seen{$k} = 1;
                     return 1;
                 }
