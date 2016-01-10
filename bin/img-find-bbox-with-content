@@ -4,9 +4,11 @@
 use v5.18;
 use Imager;
 use Parallel::ForkManager;
+use File::Path qw(make_path);
+use Getopt::Long;
 
 sub main {
-    my ($input, $output) = @_;
+    my ($options, $input, $output) = @_;
     my $img = Imager->new( file => $input );
     iterate_over_all_bbox(
         $img->getwidth,
@@ -19,25 +21,37 @@ sub main {
             return unless (all_white($img->getpixel( x => $x+$w-1, y => [$y..($y+$h-1)] )));
 
             my $p = $img->crop( left => $x, right => $x+$w-1, top => $y, bottom => $y+$h-1 );
-            for(0..$h) {
-                unless (all_white($p->getscanline( x => 0, y => $_ ))) {
-                    $p->write( file => "$output/bbox-$x-$y-$w-$h.png" );
-                    return 1;
-                }
+            my @c = map { ($p->getscanline( x => 0, y => $_ )) } 0..$h;
+
+            unless (mostly_white(@c)) {
+                my $dir = "$output/bbox-$w-$h";
+                make_path($dir) unless -d $dir;
+                $p->write( file => "$dir/$x-$y.png" );
+                return 1;
             }
             return 0;
         }
     );
 }
-main(@ARGV);
+
+my $opts = {};
+GetOptions($opts, "box-min=n", "box-max=n");
+main($opts, @ARGV);
 
 sub all_white {
     my (@colors) = @_;
     return @colors == 0+(grep { defined($_) && ($_->rgba)[0] == 255 } @colors);
 }
 
+sub mostly_white {
+    my (@colors) = @_;
+    my $threshold = (@colors < 100) ? (0+@colors) : (0.99 * @colors);
+    return $threshold < 0+(grep { defined($_) && ($_->rgba)[0] == 255 } @colors);
+}
+
 sub iterate_over_all_bbox {
     my ($img_width, $img_height, $cb) = @_;
+
     my $forkman = Parallel::ForkManager->new(4);
     for my $w ( map { $_ * 10 } 18..30 ) {
         for my $h ( map { $_ * 10 } 18..30 ) {
