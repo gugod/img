@@ -33,7 +33,7 @@ sub main {
                 my $k = join("-", $x2, $y2, $w2, $h2);
                 unless ( $seen{$k} ) {
                     $seen{$k} = 1;
-                    my $dir = "$output/$w-$h";
+                    my $dir = "$output/$x-$y";
                     make_path($dir) unless -d $dir;
 
                     unless (-f "$dir/bbox-$k.png") {
