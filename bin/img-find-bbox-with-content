@@ -88,7 +88,7 @@ sub trim_white_edge {
 sub iterate_over_all_bbox {
     my ($img_width, $img_height, $cb) = @_;
 
-    my @dimension = reverse map { $_ * 20 } 9..15;
+    my @dimension = reverse map { $_ * 50 } 2..6; # 100..300 by 50
     my $forkman = Parallel::ForkManager->new(4);
     for my $w (@dimension) {
         for my $h ( @dimension ) {
