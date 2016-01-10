@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+# convert in.png -brightness-contrast 0x100% out.png
+
+use v5.18;
+use Imager;
+use Parallel::ForkManager;
+
+sub main {
+    my ($input, $output) = @_;
+    my $img = Imager->new( file => $input );
+    iterate_over_all_bbox(
+        $img->getwidth,
+        $img->getheight,
+        sub {
+            my ($x,$y,$w,$h) = @_;
+            return unless (all_white($img->getscanline( x => $x, y => $y, width => $w )));
+            return unless (all_white($img->getscanline( x => $x, y => $y+$h-1, width => $w )));
+            return unless (all_white($img->getpixel( x => $x, y => [$y..($y+$h-1)] )));
+            return unless (all_white($img->getpixel( x => $x+$w-1, y => [$y..($y+$h-1)] )));
+
+            my $p = $img->crop( left => $x, right => $x+$w-1, top => $y, bottom => $y+$h-1 );
+            for(0..$h) {
+                unless (all_white($p->getscanline( x => 0, y => $_ ))) {
+                    $p->write( file => "$output/bbox-$x-$y-$w-$h.png" );
+                    return 1;
+                }
+            }
+            return 0;
+        }
+    );
+}
+main(@ARGV);
+
+sub all_white {
+    my (@colors) = @_;
+    return @colors == 0+(grep { defined($_) && ($_->rgba)[0] == 255 } @colors);
+}
+
+sub iterate_over_all_bbox {
+    my ($img_width, $img_height, $cb) = @_;
+    my $forkman = Parallel::ForkManager->new(4);
+    for my $w ( map { $_ * 10 } 18..30 ) {
+        for my $h ( map { $_ * 10 } 18..30 ) {
+            for (my $x = 0; $x < $img_width-$w; $x += 10) {
+                for (my $y = 0; $y < $img_height-$h; $y += 10) {
+                    # $forkman->start and next;
+                    my $bbox = "BBOX: [$x,$y,$w,$h]";
+                    if ( $cb->($x,$y,$w,$h) ) {
+                        say "FOUND: $bbox";
+                    # } else {
+                    #     say "FAIL: $bbox";
+                    }
+                    $forkman->finish;
+                }
+            }
+        }
+    }
+    $forkman->wait_all_children;
+}
