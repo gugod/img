@@ -96,7 +96,7 @@ sub iterate_over_all_bbox {
         for my $h ( @dimension ) {
             for (my $x = 0; $x < $img_width-$w; $x += 10) {
                 for (my $y = 0; $y < $img_height-$h; $y += 10) {
-                    # $forkman->start and next;
+                    $forkman->start and next;
                     my $bbox = "BBOX: [$x,$y,$w,$h]";
                     if ( $cb->($x,$y,$w,$h) ) {
                         say "FOUND: $bbox";
