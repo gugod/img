@@ -10,6 +10,7 @@ use Getopt::Long;
 sub main {
     my ($options, $input, $output) = @_;
     my $img = Imager->new( file => $input );
+    my %seen;
     iterate_over_all_bbox(
         $img->getwidth,
         $img->getheight,
@@ -24,10 +25,17 @@ sub main {
             my @c = map { ($p->getscanline( x => 0, y => $_ )) } 0..$h;
 
             unless (mostly_white(@c)) {
-                my $dir = "$output/bbox-$w-$h";
-                make_path($dir) unless -d $dir;
-                $p->write( file => "$dir/$x-$y.png" );
-                return 1;
+                my ($p2, $shave) = trim_white_edge($p);
+                my ($w2,$h2) = ($p2->getwidth, $p2->getheight);
+                my $x2 = $x + $shave->{left};
+                my $y2 = $y + $shave->{top};
+
+                my $k = join("-", $x2, $y2, $w2, $h2);
+                unless ( $seen{$k} ) {
+                    $p2->write( file => "$output/bbox-$k.png" );
+                    $seen{$k} = 1;
+                    return 1;
+                }
             }
             return 0;
         }
@@ -49,20 +57,47 @@ sub mostly_white {
     return $threshold < 0+(grep { defined($_) && ($_->rgba)[0] == 255 } @colors);
 }
 
+sub trim_white_edge {
+    my $original_image = shift;
+    my $image = $original_image->copy;
+    my $box = { top => 0, bottom => 0, left => 0, right => 0 };
+    my $white = Imager::Color->new("#FFFFFF");
+    my $trim = {};
+
+    for my $side ("top", "left", "bottom", "right") {
+        my $shave = 0;
+        my ($width, $height) = ($image->getwidth, $image->getheight);
+
+        while($shave < $height) {
+            my @colors = $image->getscanline(y => $shave);
+            my @white = grep { ($_->rgba)[0] == 255 } @colors;
+            last if @white < @colors;
+            $shave++;
+        }
+        if ($shave != 0 && $shave < $height) {
+            $trim->{$side} = $shave;
+            $image = $image->crop(top => $shave);
+        }
+        $image = $image->rotate(degrees=>90);
+    }
+
+    return ($image, $trim);
+}
+
+
 sub iterate_over_all_bbox {
     my ($img_width, $img_height, $cb) = @_;
 
+    my @dimension = reverse map { $_ * 20 } 9..15;
     my $forkman = Parallel::ForkManager->new(4);
-    for my $w ( map { $_ * 10 } 18..30 ) {
-        for my $h ( map { $_ * 10 } 18..30 ) {
+    for my $w (@dimension) {
+        for my $h ( @dimension ) {
             for (my $x = 0; $x < $img_width-$w; $x += 10) {
                 for (my $y = 0; $y < $img_height-$h; $y += 10) {
                     # $forkman->start and next;
                     my $bbox = "BBOX: [$x,$y,$w,$h]";
                     if ( $cb->($x,$y,$w,$h) ) {
                         say "FOUND: $bbox";
-                    # } else {
-                    #     say "FAIL: $bbox";
                     }
                     $forkman->finish;
                 }
