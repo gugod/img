@@ -53,11 +53,9 @@ sub main {
             my $k = join("-", $x2, $y2, $w2, $h2);
             unless ( $seen{$k} ) {
                 $seen{$k} = 1;
-                my $dir = "$output/$y2";
-                make_path($dir) unless -d $dir;
-
-                unless (-f "$dir/bbox-$k.png") {
-                    $p2->write( file => "$dir/bbox-$k.png" );
+                my $o = "$output/bbox-$k.png";
+                unless (-f $o) {
+                    $p2->write( file => $o );
                     return ($x2,$y2,$w2,$h2);
                 }
             }
