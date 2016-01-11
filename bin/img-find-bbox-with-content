@@ -95,23 +95,35 @@ sub iterate_over_all_bbox {
     my ($img_width, $img_height, $cb) = @_;
 
     my @dimension = reverse map { $_ * 50 } 1..7; # 50..350 by 50
-    my $forkman = Parallel::ForkManager->new(4);
+    my $NPROC = 4;
+    my $forkman = Parallel::ForkManager->new( $NPROC );
 
-    for my $h ( @dimension ) {
-        for (my $y = 0; $y < $img_height-$h; $y += 5) {
-            $forkman->start and next;
-            $0 = "$0 - y = $y, h = $h";
-            for my $w (@dimension) {
-                for (my $x = 0; $x < $img_width-$w; $x += 5) {
-                    my $bbox = "BBOX: [$x,$y,$w,$h]";
-                    if ( $cb->($x,$y,$w,$h) ) {
-                        say "FOUND: $bbox";
-                        $x += 45;
+    my $rows_per_proc = $img_height / $NPROC;
+    my $orig_0 = $0;
+    for my $proc (0..$NPROC-1) {
+        $forkman->start and next;
+
+        my $min_y = $proc * $rows_per_proc;
+        my $max_y = $min_y + $rows_per_proc;
+
+        for my $w (@dimension) {
+            for my $h ( @dimension ) {
+                for (my $y = $min_y; $y < $max_y-$h; $y += 5) {
+                    for (my $x = 0; $x < $img_width-$w; $x += 5) {
+                        $0 = "$orig_0 - $x, $y, $w, $h";
+                        my $bbox = "BBOX: [$x,$y,$w,$h]";
+                        if ( $cb->($x,$y,$w,$h) ) {
+                            say "FOUND: $bbox";
+                            $x += 45;
+                        }
                     }
                 }
             }
-            $forkman->finish;
         }
+
+        $forkman->finish;
     }
+
+
     $forkman->wait_all_children;
 }
