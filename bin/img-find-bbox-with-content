@@ -30,7 +30,8 @@ sub main {
     my %seen;
     iterate_over_all_bbox(
         $options,
-        $img,
+        $img->getwidth,
+        $img->getheight,
         sub {
             my ($x,$y,$w,$h) = @_;
             return unless (all_white($img->getscanline( x => $x, y => $y, width => $w )));
