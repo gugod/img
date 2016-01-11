@@ -20,6 +20,7 @@ use v5.18;
 use Imager;
 use Parallel::ForkManager;
 use File::Path qw(make_path);
+use Scalar::Util qw(looks_like_number);
 use Getopt::Long;
 
 sub main {
@@ -66,7 +67,7 @@ sub main {
 }
 
 my $opts = {};
-GetOptions($opts, "dimension=n");
+GetOptions($opts, "dimension=s");
 main($opts, @ARGV);
 
 sub all_white {
@@ -113,7 +114,7 @@ sub iterate_over_all_bbox {
 
     my @dimension;
     if ($options->{dimension}) {
-        @dimension = ($options->{dimension});
+        @dimension = grep { looks_like_number($_) && $_ > 0 } split ",", $options->{dimension};
     } else {
         @dimension = reverse map { $_ * 50 } 1..7; # 50..350 by 50
     }
