@@ -24,12 +24,13 @@ use Getopt::Long;
 
 sub main {
     my ($options, $input, $output) = @_;
+    make_path($output) unless -d $output;
+
     my $img = Imager->new( file => $input );
     my %seen;
     iterate_over_all_bbox(
         $options,
-        $img->getwidth,
-        $img->getheight,
+        $img,
         sub {
             my ($x,$y,$w,$h) = @_;
             return unless (all_white($img->getscanline( x => $x, y => $y, width => $w )));
