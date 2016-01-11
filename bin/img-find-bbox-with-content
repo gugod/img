@@ -1,5 +1,21 @@
 #!/usr/bin/env perl
-# convert in.png -brightness-contrast 0x100% out.png
+
+=head1 Process
+
+Do one of these:
+
+    convert $input -brightness-contrast 0x100% $output
+    convert $input -threshold 75% -type bilevel $output
+
+Run:
+
+    img-find-bbox-with-content $input var/out/
+
+Run tesserract:
+
+    find var/out/ -name '*.png' | parallel -j2 tesseract -psm 10 -l chi_tra {} {.}
+
+=cut
 
 use v5.18;
 use Imager;
