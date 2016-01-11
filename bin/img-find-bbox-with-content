@@ -4,8 +4,7 @@
 
 Do one of these:
 
-    convert $input -brightness-contrast 0x100% $output
-    convert $input -threshold 75% -type bilevel $output
+    convert $input -brightness-contrast 0x100%  -threshold 75% -type bilevel $output
 
 Run:
 
