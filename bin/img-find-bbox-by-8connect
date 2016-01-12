@@ -1,16 +1,22 @@
 #!/usr/bin/env perl
 
 use v5.18;
+use strict;
+use warnings;
+use autodie;
 
 use File::Path qw< make_path >;
+use Getopt::Long qw< GetOptions >;
+
 use FindBin;
 use lib "${FindBin::Bin}/../lib";
 
 use Img;
 
 sub main {
-    my ($options, $input, $output) = @_;
-    make_path($output) unless -d $output;
+    my ($opts, $input, $output) = @_;
+
+    open my $fh_output, ">", $output;
 
     my $img = Img->new( file => $input );
     my $img_width = $img->getwidth();
@@ -40,17 +46,7 @@ sub main {
                     my $k  = join ",", @{$box}{"top","bottom","left","right"};
 
                     unless ($boxes{$k}) {
-                        say "$k";
-                        eval {
-                            my $img_box = $img->crop(%$box);
-                            $img_box->write(file => "$output/$k.png");
-                            1;
-                        } or do {
-                            my $error = $@ || "UNKNOWN ERROR";
-                            warn "Fail to write generate bbox image for $k";
-                        };
-
-                        $boxes{$k} ||= $box;
+                        $boxes{$k} = $box;
                         $x = 1+$box->{right};
                         for my $x_ (keys %{$box_scanned}) {
                             for my $y_ (keys %{$box_scanned->{$x_}}) {
@@ -63,8 +59,11 @@ sub main {
         }
     }
 
-    return [values %boxes];
+    for (keys %boxes) {
+        say $fh_output $_;
+    }
 }
 
 my $opts = {};
+die unless @ARGV == 2;
 main($opts, @ARGV);
