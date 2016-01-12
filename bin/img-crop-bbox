@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+use v5.18;
+use File::Path qw< make_path >;
+use Getopt::Long qw< GetOptions >;
+
+use Parallel::ForkManager;
+use Imager;
+
+sub main {
+    my ($opts, $image_file, $input, $output_dir) = @_;
+    make_path($output_dir) unless -d $output_dir;
+    die unless -f $input;
+
+    open my $fh, "<", $input;
+    my @bbox;
+    while (my $k = <$fh>) {
+        chomp($k);
+        my @b = split /,/, $k;
+        push @bbox, { k => $k, top => $b[0], bottom => $b[1], left => $b[2], right => $b[3] };
+    }
+    close($fh);
+
+    my $img = Imager->new( file => $image_file ) or die Imager->errstr;
+    my $forkman = Parallel::ForkManager->new(2);
+    for my $bbox (@bbox) {
+        $forkman->start and next;
+        my $k = delete $bbox->{k};
+        my $img_box = $img->crop(%$bbox);
+        $img_box->write(file => "$output_dir/$k.png");
+        $forkman->finish;
+    }
+    $forkman->wait_all_children;
+}
+
+my $opts = {};
+die if (@ARGV != 3);
+main($opts, @ARGV);
