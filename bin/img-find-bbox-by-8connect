@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+
+use v5.18;
+
+use File::Path qw< make_path >;
+use FindBin;
+use lib "${FindBin::Bin}/../lib";
+
+use Img;
+
+sub main {
+    my ($options, $input, $output) = @_;
+    make_path($output) unless -d $output;
+
+    my $img = Img->new( file => $input );
+    my $img_width = $img->getwidth();
+    my $img_height = $img->getheight();
+    my $white = Imager::Color->new("#FFFFFF");
+
+    my $scanned = {};
+    my %boxes;
+    for my $y (0..$img_height-1) {
+        my $x = 0;
+        while ($x < $img_width) {
+            if ($scanned->{$x}{$y}) {
+                $x += 1;
+                next;
+            }
+
+            my $px = $img->getpixel( x => $x, y => $y );
+            $scanned->{$x}{$y} = 1;
+
+            if ( ($px->rgba())[0] == 255 ) {
+                $x += 1;
+            } else {
+                my $box = $img->bbox_containing_connected_pixels_from(x => $x, y => $y);
+
+                unless ($box->{top} == $box->{bottom} || $box->{left} == $box->{right}) {
+                    my $box_scanned = delete $box->{scanned};
+                    my $k  = join ",", @{$box}{"top","bottom","left","right"};
+
+                    unless ($boxes{$k}) {
+                        say "$k";
+                        eval {
+                            my $img_box = $img->crop(%$box);
+                            $img_box->write(file => "$output/$k.png");
+                            1;
+                        } or do {
+                            my $error = $@ || "UNKNOWN ERROR";
+                            warn "Fail to write generate bbox image for $k";
+                        };
+
+                        $boxes{$k} ||= $box;
+                        $x = 1+$box->{right};
+                        for my $x_ (keys %{$box_scanned}) {
+                            for my $y_ (keys %{$box_scanned->{$x_}}) {
+                                $scanned->{$x_}{$y_} = 1;
+                            }                    
+                        }                    
+                    }
+                }
+            }
+        }
+    }
+
+    return [values %boxes];
+}
+
+my $opts = {};
+main($opts, @ARGV);

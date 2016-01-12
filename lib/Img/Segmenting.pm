@@ -7,8 +7,6 @@ package Img::Segmenting {
         my ($img, %args) = @_;
         my ($x,$y) = @args{"x", "y"};
 
-        my $white = Imager::Color->new("#FFFFFF");
-
         my $box = { top => $y, bottom => $y, left => $x, right => $x };
         my $anchor_pixel = $img->getpixel(x=>$x, y=>$y);
 
@@ -20,7 +18,7 @@ package Img::Segmenting {
             next if $scanned->{$x}{$y};
             my $px = $img->getpixel(x => $x, y => $y);
             $scanned->{$x}{$y} = 1;
-            if ( $px && $white->equals( other => $px ) ) {
+            if ( $px && ($px->rgba)[0] != 255 ) {
                 $box->{top}    = $y if $box->{top}    > $y;
                 $box->{bottom} = $y if $box->{bottom} < $y;
                 $box->{left}   = $x if $box->{left}   > $x;

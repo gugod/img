@@ -3,6 +3,7 @@ package Img {
     use Moo;
     extends 'Imager';
     with 'Img::Hashing';
+    with 'Img::Segmenting';
 
     around qw<crop copy to_paletted convert scale> => sub {
         my $orig = shift;
