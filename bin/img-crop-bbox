@@ -23,10 +23,13 @@ sub main {
     my $img = Imager->new( file => $image_file ) or die Imager->errstr;
     my $forkman = Parallel::ForkManager->new(2);
     for my $bbox (@bbox) {
-        $forkman->start and next;
         my $k = delete $bbox->{k};
+        my $out = "$output_dir/$k.png";
+        next if -f $out;
+
+        $forkman->start and next;
         my $img_box = $img->crop(%$bbox);
-        $img_box->write(file => "$output_dir/$k.png");
+        $img_box->write(file => $out);
         $forkman->finish;
     }
     $forkman->wait_all_children;
