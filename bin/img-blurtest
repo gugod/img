@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+
+my $file = $ARGV[0] or die;
+
+my $img_orig = Imager->new(file=>$file) or die Imager->errstr;
+
+$img_orig->filter(type=>"autolevels");
+# $img_orig->write(file=>"/tmp/autolevels.jpg");
+
+my $img = $img_orig->copy;
+
+# $img->filter( type => "mosaic", size => 2 );
+# $img->filter(type=>'conv', coef => [-5,5,-5]);
+$img->filter(type=>'gaussian', stddev => 0.3);
+
+$img->map(all => [map { my $x=int($_/16); $x+$x*16 } 0..255]);
+
+$img->write(file=>"/tmp/o.jpg");
+
+my $img_diff = $img->difference(other=>$img_orig);
+$img_diff->write(file=>"/tmp/diff.jpg");

@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Getopt::Std;
+use File::Path 'make_path';
+use List::Util qw(min);
+
+use Img;
+use Img::SlidingWindow;
+
+my %opts;
+getopts('o:', \%opts);
+
+my $output_dir = $opts{o} or die;
+my $file = $ARGV[0] or die;
+
+my $img = Img->new( file => $file ) or die Img->errstr;
+
+my $d = min($img->getwidth, $img->getheight);
+my @config = map {
+    my $w = int( $_ * $d );
+    [ $w, $w, int($w/2) ]
+} (0.1, 0.05, 0.025);
+
+for my $config ( @config ) {
+    my ($w,$h, $step) = @$config;
+
+    my $iter = Img::SlidingWindow->new(
+        image  => $img,
+        width  => $w,
+        height => $h,
+        step   => $step,
+    );
+
+    my $dir = "${output_dir}/${w}x${h}";
+
+    while (my $item = $iter->next()) {
+        my $p = $item->patch;
+        my $dir2 = "${dir}/" . $item->top;
+
+        make_path($dir2) unless -d $dir2;
+
+        my $fn = "${dir2}/" . $item->left . ".png";
+
+        $p->write( file => $fn );
+        say "==> $fn";
+    }
+}

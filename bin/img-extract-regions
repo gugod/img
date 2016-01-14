@@ -1,0 +1,25 @@
+#!/usr/bin/env perl
+use v5.18;
+use Imager;
+use Imager::Color;
+
+my $file = $ARGV[0] or die;
+
+my $out_dir = "/tmp/region";
+
+my $img_orig = Imager->new(file=>$file) or die Imager->errstr;
+my $img = $img_orig->copy;
+
+my $c2 = Imager::Color->new(255,255,255,255);
+my $i = 0;
+for my $y (0 .. $img->getheight-1) {
+    for my $x (0 .. $img->getwidth-1) {
+        my $c = $img->getpixel(y=>$y, x=>$x);
+        unless ($c->equals( other => $c2 )) {
+            $img->flood_fill(y=>$y, x=>$x, color => $c2);
+            my $diff = $img->difference( other => $img_orig );
+            $diff->write(file => "${out_dir}/$i.jpg");
+            $i++;
+        }
+    }
+}

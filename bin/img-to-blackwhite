@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Imager;
+use Imager::Color;
+use Imager::Fill;
+
+my ($input, $output) = @ARGV;
+($output && -f $input) or die;
+
+my $img = Imager->new( file => $input ) or die Imager->errstr;
+
+$img = $img->to_paletted({
+    colors => [ Imager::Color->new(255,255,255), Imager::Color->new(0,0,0) ],
+    make_colors => "none",
+    translate   => "errdiff",
+});
+
+$img->write( file => $output ) or die $img->errstr;

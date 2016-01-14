@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Getopt::Std;
+
+use Img;
+use Img::Hashing;
+
+for my $file (@ARGV) {
+    my $img = Img->new(file=>$file) or die Img->errstr;
+    
+
+    my $crop = $img->find_good_crop;
+}
+

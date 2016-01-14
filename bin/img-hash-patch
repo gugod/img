@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+use v5.18;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Img;
+use Img::SlidingWindow;
+
+my $file = $ARGV[0] or die;
+my $img = Img->new( file => $file ) or die Img->errstr;
+
+my $iter = Img::SlidingWindow->new(
+    image  => $img,
+    width  => 8,
+    height => 8,
+    step   => 1,
+);
+
+
+while (my $item = $iter->next()) {
+    my $p = $item->patch;
+    my $hash = $p->average_hash;
+    next if $hash == 0;
+
+    my $hash_hex = sprintf("%016x", $hash);
+
+    my $geo = $item->left . "+" . $item->top;
+
+}

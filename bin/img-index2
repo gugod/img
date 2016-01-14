@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+use v5.18;
+
+use Tree::BK;
+
+sub hamdist {
+    my ($a, $b) = @_;
+    my $o = (hex($a) ^ hex($b));
+    # say "$a $b " . sprintf('%16x', $o);
+
+    my $s = 0;
+    for my $i (reverse 0..63) {
+        $s++ if ($o & (1<<$i));
+    }
+    return $s;
+}
+
+# say hamdist("87c74000fcfcfcfc", "87c74000fcfcfcfc");
+# exit;
+
+my $tree = Tree::BK->new(\&hamdist);
+
+my $img_hashes = {};
+while(<>) {
+    chomp;
+    my ($hash, $path) = split /\t/, $_, 2;
+    $tree->insert($hash);
+    push @{$img_hashes->{$hash}}, $path;
+}
+
+my $out = $tree->find("c7e62000fcfcfcfe", 16);
+for (@$out) {
+    say join "\t", $_, @{$img_hashes->{$_}};
+}
