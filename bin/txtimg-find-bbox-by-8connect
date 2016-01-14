@@ -1,0 +1,130 @@
+#!/usr/bin/env perl
+
+use v5.18;
+use strict;
+use warnings;
+use autodie;
+
+use List::Util qw(min max);
+use File::Path qw< make_path >;
+use Getopt::Long qw< GetOptions >;
+
+use FindBin;
+use lib "${FindBin::Bin}/../lib";
+
+use TxtImg;
+
+sub find_overlaps_and_merge {
+    my ($bbox) = @_;
+
+    my $bbox2 = [];
+
+    while (1) {
+        my @points;
+        my %seen;
+
+        for my $i ( 0 ... @$bbox-1) {
+            my $bb = $bbox->[$i];
+            push(@points,
+                 [$bb->[2], $bb->[0], $bb],
+                 [$bb->[2], $bb->[1], $bb],
+                 [$bb->[3], $bb->[0], $bb],
+                 [$bb->[3], $bb->[1], $bb]);
+        }
+
+        my @points_i_sorted_by_x = sort { $points[$a][0] <=> $points[$b][0] } (0...@points-1);
+        for my $i (0..@$bbox-1) {
+            my $bb = $bbox->[$i];
+            my @points_inside_bb;
+            for my $j (@points_i_sorted_by_x) {
+                my $p_x = $points[$j][0];
+                my $p_y = $points[$j][1];
+                if ( $bb->[2] <= $p_x && $p_x <= $bb->[3] ) {
+                    if ( $bb->[0] <= $p_y && $p_y <= $bb->[1] ) {
+                        push @points_inside_bb, $points[$j];
+                    }
+                }
+            }
+            my $merged_bb = merge_bboxes($bb, map { $_->[2] } @points_inside_bb);
+            my $k = join(",", @$merged_bb);
+            unless ($seen{$k}++) {
+                push @$bbox2, $merged_bb;
+            }
+        }
+
+        if (@$bbox2 == @$bbox) {
+            last;
+        } else {
+            $bbox = $bbox2;
+            $bbox2 = [];
+        }
+    }
+    return $bbox2;
+}
+
+sub merge_bboxes {
+    my @boxes = @_;
+    return [
+        min(map { $_->[0] } @boxes),
+        max(map { $_->[1] } @boxes),
+        min(map { $_->[2] } @boxes),
+        max(map { $_->[3] } @boxes),
+    ]
+}
+
+sub main {
+    my ($opts, $input, $output) = @_;
+
+    $output //= $input . ".bbox.csv";
+    open my $fh_output, ">", $output;
+
+    my $img = TxtImg->new( file => $input );
+    my $img_width = $img->getwidth();
+    my $img_height = $img->getheight();
+    my $white = Imager::Color->new("#FFFFFF");
+
+    my $scanned = {};
+    my %boxes;
+    for my $y (0..$img_height-1) {
+        my $x = 0;
+        while ($x < $img_width) {
+            if ($scanned->{$x}{$y}) {
+                $x += 1;
+                next;
+            }
+
+            my $px = $img->getpixel( x => $x, y => $y );
+            $scanned->{$x}{$y} = 1;
+
+            if ( ($px->rgba())[0] == 255 ) {
+                $x += 1;
+            } else {
+                my $box = $img->bbox_containing_connected_pixels_from(x => $x, y => $y);
+
+                unless ($box->{top} == $box->{bottom} || $box->{left} == $box->{right}) {
+                    my $box_scanned = delete $box->{scanned};
+                    my $k  = join ",", @{$box}{"top","bottom","left","right"};
+
+                    unless ($boxes{$k}) {
+                        $boxes{$k} = $box;
+                        $x = 1+$box->{right};
+                        for my $x_ (keys %{$box_scanned}) {
+                            for my $y_ (keys %{$box_scanned->{$x_}}) {
+                                $scanned->{$x_}{$y_} = 1;
+                            }                    
+                        }                    
+                    }
+                }
+            }
+        }
+    }
+
+    my $bboxes_merged = find_overlaps_and_merge([ map {[ $_->{top}, $_->{bottom}, $_->{left}, $_->{right} ]} values %boxes ]);
+    for (@$bboxes_merged) {
+        say $fh_output join(",", @$_);
+    }
+}
+
+my $opts = {};
+die unless @ARGV == 2 || @ARGV == 1;
+main($opts, @ARGV);
