@@ -16,6 +16,7 @@ use Img;
 sub main {
     my ($opts, $input, $output) = @_;
 
+    $output //= $input ".bbox.csv";
     open my $fh_output, ">", $output;
 
     my $img = Img->new( file => $input );
