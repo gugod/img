@@ -2,9 +2,12 @@
 use v5.18;
 use File::Path qw< make_path >;
 use Getopt::Long qw< GetOptions >;
-
 use Parallel::ForkManager;
-use Imager;
+
+use FindBin;
+use lib "${FindBin::Bin}/../lib";
+
+use Img;
 
 sub main {
     my ($opts, $image_file, $input, $output_dir) = @_;
@@ -20,7 +23,7 @@ sub main {
     }
     close($fh);
 
-    my $img = Imager->new( file => $image_file ) or die Imager->errstr;
+    my $img = Img->new( file => $image_file ) or die Img->errstr;
     my $forkman = Parallel::ForkManager->new(2);
     for my $bbox (@bbox) {
         my $k = delete $bbox->{k};
@@ -29,7 +32,9 @@ sub main {
 
         $forkman->start and next;
         my $img_box = $img->crop(%$bbox);
-        $img_box->write(file => $out);
+        unless ($img_box->looks_boring) {
+            $img_box->write(file => $out);
+        }
         $forkman->finish;
     }
     $forkman->wait_all_children;
