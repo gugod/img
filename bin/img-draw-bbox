@@ -1,0 +1,44 @@
+#!/usr/bin/env perl
+use v5.18;
+use File::Path qw< make_path >;
+use Getopt::Long qw< GetOptions >;
+use Parallel::ForkManager;
+
+use FindBin;
+use lib "${FindBin::Bin}/../lib";
+
+use Img;
+
+sub main {
+    my ($opts, $image_file, $input, $output) = @_;
+
+    open my $fh, "<", $input;
+    my @bbox;
+    while (my $k = <$fh>) {
+        chomp($k);
+        my @b = split /,/, $k;
+        push @bbox, \@b;
+    }
+    close($fh);
+
+    my $red = Imager::Color->new(255, 0, 0);
+    my $img = Img->new( file => $image_file ) or die Img->errstr;
+    my $img_out = Img->new( xsize => $img->getwidth,
+                            ysize => $img->getheight,
+                            channels => 3 );
+    $img_out->paste(top => 0, left => 0, img => $img);
+    for my $bbox (@bbox) {
+        $img_out->box(
+            color => $red,
+            xmin  => $bbox->[2],
+            xmax  => $bbox->[3],
+            ymin  => $bbox->[0],
+            ymax  => $bbox->[1],
+        );
+    }
+    $img_out->write( file => $output ) or die Imager->errstr;
+}
+
+my $opts = {};
+die if (@ARGV != 3);
+main($opts, @ARGV);
