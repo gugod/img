@@ -17,7 +17,7 @@ my $es = Elastijk->new( host => "localhost", port => "9200" );
 
 my $forkman = Parallel::ForkManager->new(2);
 
-for my $config ([8,8,1],[16,16,1],[24,24,1],[65,65,1]) {
+for my $config ([8,8,1]) {
     $forkman->start and next;
     
     my ($w,$h, $step) = @$config;
