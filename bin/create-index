@@ -45,6 +45,10 @@ $es->put(
                     geometry => { type => "string", index => "not_analyzed" },
                     average_hash => { type => "string", index => "not_analyzed" },
                     difference_hash => { type => "string", index => "not_analyzed" },
+                    neighbours => {
+                        type => "string",
+                        index => "not_analyzed"
+                    },
                     terms => {
                         properties => {
                             average_hash => { type => "string", index => "not_analyzed" },
