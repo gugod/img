@@ -1,0 +1,40 @@
+use v5.18;
+
+use v5.18;
+use Elastijk;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use Img;
+
+my $output_dir = "/tmp/o";
+
+my $wanted_avghash = shift(@ARGV);
+
+my $es = Elastijk->new( host => "localhost", port => "9200", index => "img" );
+
+my $res = $es->search(
+    body => {
+        size => 10,
+        filter => {
+            term => {
+                average_hash => $wanted_avghash,
+            }
+        }
+    }
+);
+
+my $id = 0;
+my %img_seen;
+for my $hit (@{ $res->{hits}{hits} }) {
+    my $src = $hit->{_source};
+    
+    my ($w,$h,$x,$y) = $src->{geometry} =~ /\A ([0-9]+) x ([0-9]+) \+ ([0-9]+) \+ ([0-9]+) \z/x;
+    next unless defined($w) && defined($h) && defined($x) && defined($y);
+
+    my $img = $img_seen{$src->{file}} ||= Img->new( file => $src->{file} );
+
+    $id++;
+    my $img2 = $img->crop( top => $y, left => $x, width => $w, height => $h );
+    $img2->write( file => "${output_dir}/${id}.png" );
+}
