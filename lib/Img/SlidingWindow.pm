@@ -4,18 +4,21 @@ package Img::SlidingWindow {
     use Img;
     use Img::ImagePatch;
 
+    has offset_top  => ( is => "rw", default => 0 );
+    has offset_left => ( is => "rw", default => 0 );
+
     has width  => (is => "ro", required => 1);
     has height => (is => "ro", required => 1);
     has image  => (is => "ro", required => 1);
 
     has step => ( is => "rw", default => 1 );
-    has top  => ( is => "rw", default => 0 );
-    has left => ( is => "rw", default => 0 );
+    has top  => ( is => "rw", default => sub { $_[0]->offset_top  } );
+    has left => ( is => "rw", default => sub { $_[0]->offset_left } );
 
     sub reset {
         my $self = shift;
-        $self->top(0);
-        $self->left(0);
+        $self->top( $self->offset_top );
+        $self->left( $self->offset_left );
     }
 
     sub next {
@@ -24,7 +27,7 @@ package Img::SlidingWindow {
         my $y = $self->top;
 
         if ( $x + $self->width >= $self->image->getwidth ) {
-            $x = 0;
+            $x = $self->offset_left;
             $y += $self->step;
             if ( $y + $self->height >= $self->image->getheight ) {
                 return;
