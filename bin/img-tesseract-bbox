@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use warnings;
+use autodie;
+
+use File::Temp qw< tempdir >;
+use File::Slurp qw< read_file >;
+
+use FindBin;
+use lib "${FindBin::Bin}/../lib";
+
+use Img;
+
+sub MAIN {
+    my ($image_file, $bbox_file, $bbox_output_file) = @_;
+    die "$image_file is not a file" unless -f $image_file;
+    die "$bbox_file is not a file" unless -f $bbox_file;
+
+    my $output_csv = $bbox_output_file;
+    open my $output_csv_fh, ">:utf8", $output_csv;
+
+    my @bbox;
+    open my $fh, "<", $bbox_file;
+    while (my $k = <$fh>) {
+        chomp($k);
+        push @bbox, [split /,/, $k];
+    }
+    close($fh);
+
+    my $procdir = tempdir( CLEANUP => 1 );
+    say $procdir;
+    my $img = Img->new( file => $image_file) or die Img->errstr;
+    for my $bbox (@bbox) {
+        my $img_bbox = $img->crop(top => $bbox->[0], bottom => $bbox->[1], left => $bbox->[3], right => $bbox->[4]);
+        my $f_base = $procdir . "/" . join("-", @$bbox);
+        my $f_png = $f_base . ".png";
+        my $f_txt = $f_base . ".txt";
+        $img_bbox->write( file => $f_png ) or die $img_bbox->errstr;
+        system("tesseract $f_png $f_base -l chi_tra -psm 10 2>&1 >/dev/null") == 0 or die "tesserract failed: $! , $?";
+        if (-f $f_txt) {
+            my $txt = read_file($f_txt, { binmode => ":utf8" });
+            if (defined($txt)) {
+                $txt =~ s/\s//gs;
+                if ($txt ne "") {
+                    print $output_csv_fh join(",", @$bbox, $txt) . "\n";
+                }
+            }
+        }
+    }
+}
+MAIN(@ARGV);
