@@ -1,0 +1,44 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+
+sub MAIN {
+    my ($ocr_csv_file) = @_;
+
+    my @bbox;
+    open my $fh, "<", $ocr_csv_file;
+    while (my $k = <$fh>) {
+        chomp($k);
+        push @bbox, [split /,/, $k];
+    }
+    close($fh);
+
+    my @groups;
+    my @group_of;
+    for my $i (0 .. $#bbox-1) {
+        my $group_id;
+        if (defined($group_of[$i])) {
+            $group_id = $group_of[$i];
+        } else {
+            $group_id = @groups + 1;
+            push @{$groups[$group_id]}, $bbox[$i];
+        }
+
+        my $bbox = $bbox[$i];
+        for my $j ($i .. $#bbox) {
+            if ( ($bbox[$i][2] <= $bbox[$j][2] && $bbox[$j][2] <= $bbox[$i][3]) || ($bbox[$i][2] <= $bbox[$j][3] && $bbox[$j][3] <= $bbox[$i][3]) ) {
+                $group_of[$j] = $group_of[$i];
+            }
+        }
+    }
+
+    for (@groups) {
+        my $str = "";
+        for my $box (sort { $a->[0] cmp $b->[0] } @$_) {
+            $str .= $box->[4];
+        }
+        say $str;
+        say "----";
+    }
+}
+MAIN(@ARGV);
