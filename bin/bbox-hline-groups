@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use List::MoreUtils qw(uniq);
+
+sub MAIN {
+    my ($ocr_csv_file) = @_;
+
+    my @bbox;
+    open my $fh, "<", $ocr_csv_file;
+    while (my $k = <$fh>) {
+        chomp($k);
+        push @bbox, [split /,/, $k];
+    }
+    close($fh);
+
+    my @groups;
+    my @group_of;
+    for my $i (0 .. $#bbox-1) {
+        unless (defined($group_of[$i])) {
+            $group_of[$i] = @groups;
+            $groups[ $group_of[$i] ] = [ $i ];
+        }
+
+        for my $j ($i+1 .. $#bbox) {
+            if ( ($bbox[$i][0] <= $bbox[$j][0] && $bbox[$j][0] <= $bbox[$i][1]) || ($bbox[$i][0] <= $bbox[$j][1] && $bbox[$j][1] <= $bbox[$i][0]) ) {
+                $group_of[$j] = $group_of[$i];
+                push @{$groups[$group_of[$j]]}, $j;
+            }
+        }
+    }
+
+    for (@groups) {
+        $_ = [ sort { $bbox[$a][2] <=> $bbox[$b][2] } uniq(@$_) ];
+    }
+
+    for my $group (sort { $bbox[$a->[0]][0] <=> $bbox[$b->[0]][0] } @groups) {
+        my $str = join "", map { $bbox[$_][4] } @$group;
+        say $str;
+    }
+}
+MAIN(@ARGV);
