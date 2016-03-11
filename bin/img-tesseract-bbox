@@ -32,6 +32,10 @@ sub MAIN {
     say $procdir;
     my $img = Img->new( file => $image_file) or die Img->errstr;
     for my $bbox (@bbox) {
+        my $width = $bbox->[3] - $bbox->[2];
+        my $height = $bbox->[1] - $bbox->[0];
+        next if ($width < 5 || $height < 5);
+
         my $img_bbox = $img->crop(top => $bbox->[0], bottom => $bbox->[1], left => $bbox->[2], right => $bbox->[3]);
         my $f_base = $procdir . "/" . join("-", @$bbox);
         my $f_png = $f_base . ".png";

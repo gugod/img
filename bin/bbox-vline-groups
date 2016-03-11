@@ -10,7 +10,13 @@ sub MAIN {
     open my $fh, "<", $ocr_csv_file;
     while (my $k = <$fh>) {
         chomp($k);
-        push @bbox, [split /,/, $k];
+        my $bbox = [split /,/, $k];
+
+        my $width = $bbox->[3] - $bbox->[2];
+        my $height = $bbox->[1] - $bbox->[0];
+        next if ($width < 8 || $height < 8);
+
+        push @bbox, $bbox;
     }
     close($fh);
 
