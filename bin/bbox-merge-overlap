@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use warnings;
+use autodie;
+
+sub is_overlapping {
+    my ($box_x, $box_y) = @_;
+    my @box_y_points = (
+        [ $box_y->[2],  $box_y->[0] ],
+        [ $box_y->[2],  $box_y->[1] ],
+        [ $box_y->[3], $box_y->[0] ],
+        [ $box_y->[3], $box_y->[1] ],        
+    );
+
+    my $overlapping = 0;
+    for my $p (@box_y_points) {
+        if ( $box_x->[2] <= $p->[0] && $p->[0] <= $box_x->[3] &&
+             $box_x->[0] <= $p->[1]  && $p->[1] <= $box_x->[1]  ) {
+            $overlapping = 1;
+            last;
+        }
+    }
+    return $overlapping;
+}
+
+sub merge_these {
+    my ($boxes) = @_;
+    my ($x, @boxes) = @{$_[0]};
+    my ($min_left, $max_right, $min_top, $max_bottom) = ( $boxes->[0][2], $boxes->[0][3], $boxes->[0][0], $boxes->[0][1] );
+    for my $i (1..$#$boxes) {
+        my $box = $boxes->[$i];
+        $min_left = $box->[2] if $box->[2] < $min_left;
+        $max_right = $box->[3] if $box->[3] > $max_right;
+        $min_top = $box->[0] if $box->[0] < $min_top;
+        $max_bottom = $box->[1] if $box->[1] > $max_bottom;
+    }
+    return [$min_top, $max_bottom, $min_left, $max_right];
+}
+
+sub MAIN {
+    my ($bbox_input_file, $bbox_output_file) = @_;
+
+    my @bbox;
+    open my $fh, "<", $bbox_input_file;
+    while (my $k = <$fh>) {
+        chomp($k);
+        push @bbox, [split /,/, $k];
+    }
+    close($fh);
+
+    my @merged;
+    my $merge_count = 0;
+
+    while(1) {
+        for (my $i = 0; $i < @bbox-1; $i++) {
+            my $x = $bbox[$i];
+            my @g = ($x);
+            for (my $j = $i+1; $j < @bbox; $j++) {
+                my $y = $bbox[$j];
+                if ( is_overlapping($x, $y) ) {
+                    push @g, $y;
+                }
+            }
+            if (@g > 1) {
+                my $b = merge_these(\@g);
+                push @merged, $b;
+                $merge_count++;
+            } else {
+                push @merged, $x;
+            }
+        }
+        last if $merge_count == 0;
+
+        @bbox = @merged;
+        @merged = ();
+        $merge_count = 0;
+    }
+
+    open my $out_fh, ">", $bbox_output_file;
+    for my $b (@merged) {
+        say $out_fh join(",", @$b)
+    }
+    close($out_fh);
+}
+MAIN(@ARGV);
