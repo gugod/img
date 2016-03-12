@@ -5,6 +5,11 @@ use warnings;
 use autodie;
 
 sub is_overlapping {
+    my ($box_a, $box_b) = @_;
+    return ( any_point_inside( $box_a, $box_b) || any_point_inside( $box_b, $box_a) );
+}
+
+sub any_point_inside {
     my ($box_x, $box_y) = @_;
     my @box_y_points = (
         [ $box_y->[2],  $box_y->[0] ],
@@ -16,7 +21,7 @@ sub is_overlapping {
     my $overlapping = 0;
     for my $p (@box_y_points) {
         if ( $box_x->[2] <= $p->[0] && $p->[0] <= $box_x->[3] &&
-             $box_x->[0] <= $p->[1]  && $p->[1] <= $box_x->[1]  ) {
+             $box_x->[0] <= $p->[1] && $p->[1] <= $box_x->[1]  ) {
             $overlapping = 1;
             last;
         }
@@ -26,7 +31,6 @@ sub is_overlapping {
 
 sub merge_these {
     my ($boxes) = @_;
-    my ($x, @boxes) = @{$_[0]};
     my ($min_left, $max_right, $min_top, $max_bottom) = ( $boxes->[0][2], $boxes->[0][3], $boxes->[0][0], $boxes->[0][1] );
     for my $i (1..$#$boxes) {
         my $box = $boxes->[$i];
@@ -49,36 +53,34 @@ sub MAIN {
     }
     close($fh);
 
-    my @merged;
-    my $merge_count = 0;
+    @bbox = map { $_->[1] } sort { $b->[0] <=> $a->[0] } map { [ (($_->[1] - $_->[0])*($_->[3] - $_->[2]))  ,$_] } @bbox;
 
     while(1) {
+        my @merged = ();
+        my $merge_count = 0;
+        my %merged;
         for (my $i = 0; $i < @bbox-1; $i++) {
+            next if $merged{$i};
             my $x = $bbox[$i];
             my @g = ($x);
             for (my $j = $i+1; $j < @bbox; $j++) {
+                next if $merged{$j};
                 my $y = $bbox[$j];
                 if ( is_overlapping($x, $y) ) {
-                    push @g, $y;
+                    $x = merge_these([$x, $y]);
+                    $merged{$j}=1;
+                    $merge_count++;
                 }
             }
-            if (@g > 1) {
-                my $b = merge_these(\@g);
-                push @merged, $b;
-                $merge_count++;
-            } else {
-                push @merged, $x;
-            }
+            push @merged, $x;
         }
         last if $merge_count == 0;
-
         @bbox = @merged;
-        @merged = ();
-        $merge_count = 0;
+        say "Iteration++: bbox count = " . (0+ @bbox) . " $merge_count merges";
     }
 
     open my $out_fh, ">", $bbox_output_file;
-    for my $b (@merged) {
+    for my $b (@bbox) {
         say $out_fh join(",", @$b)
     }
     close($out_fh);
