@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use warnings;
+
+use Imager;
+
+my ($output) = @ARGV;
+($output) or die;
+
+my $img = Imager->new(
+   xsize => 100,
+   ysize => 100,
+) or die Imager->errstr;
+my $img_width = $img->getwidth;
+
+for my $y (0..$img->getheight-1) {
+    my $pixels = pack("C*", map { (int(rand()*256), int(rand()*256), int(rand()*256), 0) } 0..99);
+    $img->setscanline(y=>$y, pixels => $pixels);
+}
+
+$img->write(file => $output) or die $img->errstr;
