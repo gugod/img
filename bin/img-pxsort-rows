@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use warnings;
+
+use Imager;
+
+my ($input, $output) = @ARGV;
+($output && -f $input) or die;
+
+my $img = Imager->new(file=>$input) or die Imager->errstr;
+my $img_width = $img->getwidth;
+
+for my $y (0..$img->getheight-1) {
+    my @px = map { $_->[0] } sort {
+        ($a->[1] <=> $b->[1]) || ($a->[2] <=> $b->[2]) || ($a->[3] <=> $b->[3])
+    } map { [$_, $_->rgba] } $img->getscanline(y=>$y);
+
+    $img->setscanline(y=>$y, pixels => \@px);
+}
+
+$img->write(file => $output) or die $img->errstr;
