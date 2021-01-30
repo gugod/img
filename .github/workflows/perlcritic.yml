@@ -1,0 +1,14 @@
+---
+name: perlcritic
+on: push
+
+jobs:
+  build:
+    name: perlcritic
+    runs-on: ubuntu-letast
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: perlcritic
+        uses: gugod/actions-perlcritic@v0
