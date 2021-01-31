@@ -8,6 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: perlcritic
-        uses: gugod/actions-perlcritic@v0.12
-        with:
-          args: "perlcritic --quiet -p .perlcriticrc ."
+        uses: gugod/actions-perlcritic@fun
