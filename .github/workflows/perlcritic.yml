@@ -8,6 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: perlcritic
-        image: 'docker://gugod/perlcritic:latest
+        image: 'docker://gugod/perlcritic:latest'
         with:
           args: "perlcritic --quiet -p .perlcriticrc ."
