@@ -7,5 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: gugod-perlcritic
-        uses: gugod/actions-perlcritic@v0.10
+      - name: perlcritic
+        uses: gugod/actions-perlcritic@v0.11
