@@ -8,4 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: perlcritic
-        uses: gugod/actions-perlcritic@v0.11
+        uses: gugod/actions-perlcritic@v0.12
